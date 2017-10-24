@@ -3,6 +3,7 @@
 import argparse
 import os
 import shutil
+import subprocess
 
 def run(settings):
     # Pull subject name from freesurfer import basename
@@ -28,23 +29,33 @@ def run(settings):
     shutil.copytree(settings['freesurfer_import_dir'],os.path.join(settings['output'],Subject,settings['input_atlas_name']))
     shutil.copyfile(FinalTemplateSpace,os.path.join(settings['output'],Subject,'{}{}.nii.gz'.format(Subject,settings['t1_suffix'])))
 
-    # Make fake warp field
-    print('Making fake warp field...')
-    os.system('fslmaths {} -sub {} {}'.format(
-        os.path.join(settings['output'],Subject,settings['input_atlas_name'],'{}{}.nii.gz'.format(Subject,settings['t1_suffix'])),
-        os.path.join(settings['output'],Subject,settings['input_atlas_name'],'{}{}.nii.gz'.format(Subject,settings['t1_suffix'])),
-        os.path.join(settings['output'],Subject,settings['input_atlas_name'],'zero.nii.gz')
-    ))
-    os.system('fslmerge -t {} -sub {} {}'.format(
-        os.path.join(settings['output'],Subject,settings['input_atlas_name'],'zero_.nii.gz'),
-        os.path.join(settings['output'],Subject,settings['input_atlas_name'],'zero.nii.gz'),
-        os.path.join(settings['output'],Subject,settings['input_atlas_name'],'zero.nii.gz'),
-        os.path.join(settings['output'],Subject,settings['input_atlas_name'],'zero.nii.gz'),
-    ))
-    shutil.move(os.path.join(
-        settings['output'],Subject,settings['input_atlas_name'],'zero_.nii.gz'),
-        os.path.join(settings['output'],Subject,settings['input_atlas_name'],'zero.nii.gz')
-    )
+    # Make some more folders
+    try:
+        os.mkdir(os.path.join(T1wFolder,NativeFolder))
+    except FileExistsError:
+        print('T1w Native directory already exists.')
+    try:
+        os.mkdir(os.path.join(AtlasSpaceFolder,'ROIs'))
+    except FileExistsError:
+        print('Atlas ROIs directory already exists.')
+    try:
+        os.mkdir(os.path.join(AtlasSpaceFolder,'Results'))
+    except FileExistsError:
+        print('Atlas Results directory already exists.')
+    try:
+        os.mkdir(os.path.join(AtlasSpaceFolder,NativeFolder))
+    except FileExistsError:
+        print('Atlas Native directory already exists.')
+    try:
+        os.mkdir(os.path.join(AtlasSpaceFolder,'fsaverage'))
+    except FileExistsError:
+        print('Atlas fsaverage directory already exists.')
+    try:
+        os.mkdir(os.path.join(AtlasSpaceFolder,'fsaverage_LR{}k'.format(settings['downsample'])))
+    except FileExistsError:
+        print('Atlas fsaverage downsample directory already exists.')
+
+# Find c_ras offset between FreeSurfer surface/volume and genearte matrix to transform surfaces
 
 
 if __name__ == '__main__':
