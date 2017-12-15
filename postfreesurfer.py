@@ -55,8 +55,37 @@ def run(settings):
     except FileExistsError:
         print('Atlas fsaverage downsample directory already exists.')
 
-# Find c_ras offset between FreeSurfer surface/volume and genearte matrix to transform surfaces
+    # Find c_ras offset between FreeSurfer surface/volume and generate matrix to transform surfaces
+    command = lambda string: 'mri_info {}/mri/brain.finalsurfs.mgz | grep {} | cut -d "=" -f 5 | sed s/" "/""/g'.format(FreeSurferFolder,string)
+    p1 = subprocess.Popen(command("c_r"),shell=True,stdout=subprocess.PIPE,universal_newlines=True)
+    MatrixX = float(p1.communicate()[0])
+    p2 = subprocess.Popen(command("c_a"),shell=True,stdout=subprocess.PIPE,universal_newlines=True)
+    MatrixY = float(p2.communicate()[0])
+    p3 = subprocess.Popen(command("c_s"),shell=True,stdout=subprocess.PIPE,universal_newlines=True)
+    MatrixZ = float(p3.communicate()[0])
+    Matrix1 = "1 0 0 {}".format(MatrixX)
+    Matrix2 = "0 1 0 {}".format(MatrixY)
+    Matrix3 = "0 0 1 {}".format(MatrixZ)
+    Matrix4 = "0 0 0 1"
 
+    # Create FreeSurfer Brain Mask
+    FSLDIR = '/opt/fsl'
+    os.system('mri_convert -rt nearest -rl {0}/{1}.nii.gz {2}/mri/wmparc.mgz {0}/wmparc_1mm.nii.gz'.format(
+        T1wFolder,
+        T1wRestoreImage,
+        FreeSurferFolder
+    ))
+    os.system('applywarp --interp=nn -i {0}/wmparc_1mm.nii.gz -r {1} --premat={2}/etc/flirtsch/ident.mat -o {0}}/wmparc.nii.gz'.format(
+        T1wFolder,
+        FinalTemplateSpace,
+        FSLDIR
+    ))
+    os.system('applywarp --interp=nn -i {0}/wmparc_1mm.nii.gz -r {1} -w {2} -o {3}/wmparc.nii.gz'.format(
+        T1wFolder,
+        FinalTemplateSpace,
+        AtlasTransform,
+        AtlasSpaceFolder
+    ))
 
 if __name__ == '__main__':
     # parse arguments to command
